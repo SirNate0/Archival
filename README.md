@@ -136,4 +136,4 @@ Used by permission. All rights reserved worldwide.
 
 `imgui_UrhoString.*` is based on the imgui std::string implenentation, and heavily derived from the `imgui_stdlib.*` files.
 
-The `CMake/` files are copied from the Urho3D project.
+The `CMake/` files are copied from the Urho3D project, as well as the MultipleViewports sample to use for the example.

@@ -384,6 +384,25 @@ private:
 
 };
 
+/*
+template<typename T>
+struct has_size_method
+{
+private:
+    typedef std::true_type yes;
+    typedef std::false_type no;
+
+    template<typename U> static auto test(int) -> decltype(std::declval<U>().size() == 1, yes());
+
+    template<typename> static no test(...);
+
+public:
+
+    static constexpr bool value = std::is_same<decltype(test<T>(0)),yes>::value;
+};
+// https://dev.krzaq.cc/post/checking-whether-a-class-has-a-member-function-with-a-given-signature/
+ */
+
 
 /// The default implementation of archiving a type. Defers to Get<T>/Set<T>.
 /// Get/Set must exist for the types bool, int, unsigned, float, and String.
