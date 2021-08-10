@@ -227,6 +227,18 @@ ArchiveResult<Archive, Matrix4> ArchiveValue(Archive &archive, const String &nam
     return {archive, good, self};
 }
 
+ArchiveResult<Archive, Rect> ArchiveValue(Archive &archive, const String &name, Rect &self)
+{
+
+    bool good = true;
+    auto ar = archive.CreateGroup(name);
+    if (!ar.CreateSeriesEntryInline().SerializeInline(self.min_).Else("min",self.min_))
+        ar.Serialize("min", self.min_);
+    if (!ar.CreateSeriesEntryInline().SerializeInline(self.max_).Else("max",self.max_))
+        ar.Serialize("max", self.max_);
+    return {archive, good, self};
+}
+
 
 #if 0
 

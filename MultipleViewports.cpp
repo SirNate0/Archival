@@ -58,9 +58,9 @@
 
 #include <Urho3D/DebugNew.h>
 
-#include "ImGuiBackend.h"
+#include "Archival/ImGuiBackend.h"
 
-#include "Archive.h"
+#include "Archival/Archive.h"
 
 URHO3D_DEFINE_APPLICATION_MAIN(MultipleViewports)
 
@@ -649,6 +649,9 @@ Urho3D::HashMap<Urho3D::String, Urho3D::String> uiStrings;
 
 void MultipleViewports::HandleUpdate(StringHash eventType, VariantMap& eventData)
 {
+
+    TestArchive();
+
     using namespace Update;
 
     // Take the frame time step, which is stored as a float

@@ -4,7 +4,11 @@
 
 #include "imgui_UrhoString.h"
 
+#include "SystemUI/SystemUI.h"
+
 #include "virtualGizmo3D/imGuIZMOquat.h"
+
+#include "ImPlot/implot.h"
 
 inline namespace Archival {
 
@@ -20,6 +24,9 @@ struct ImGuiID
 
 int ImGuiBackend::globalTreeDepth_ = -1;
 Vector<String> ImGuiBackend::lastTreeNames_;
+Vector<int> ImGuiBackend::lastTreeSeriesEntries_;
+
+static StringVector ids;
 
 ImGuiBackend::ImGuiBackend(const String &groupName, unsigned treeDepth, int seriesEntry)
     : seriesEntry_(seriesEntry), myTreeDepth_(treeDepth), myTreeName_(groupName)
@@ -49,8 +56,11 @@ ImGuiBackend::~ImGuiBackend()
     if (myTreeDepth_ == 0)//!windowName_.Empty())
     {
         while (lastTreeNames_.Size()) {
+            if (lastTreeSeriesEntries_.Back() != INVALID_SERIES_ENTRY)
+                PopID();
+            lastTreeSeriesEntries_.Pop();
             lastTreeNames_.Pop();
-            ImGui::PopID();
+            PopID();
         }
         ImGui::End();
     }
@@ -95,6 +105,33 @@ bool ImGuiBackend::SaveButton(String &filename, const String &button, bool withS
 bool ImGuiBackend::Graph(const String& name, const float *pts, unsigned count, unsigned dataStride)
 {
     ImGui::PlotLines(name.CString(),pts,static_cast<int>(count),0, NULL,FLT_MAX, FLT_MAX, ImVec2(0, 0), dataStride);
+
+    return true;
+}
+
+bool ImGuiBackend::Graph(const String &name, const float *x_data, const float *y_data, unsigned count, unsigned dataStride)
+{
+    if (ImPlot::BeginPlot(name.CString())) {
+//        ImPlot::PlotBars("My Bar Plot", bar_data, 11);
+        ImPlot::PlotLine(name.CString(), x_data, y_data, count, 0, dataStride);
+        ImPlot::EndPlot();
+    }
+
+    return true;
+}
+
+bool ImGuiBackend::GraphMulti(const String &graphName, const StringVector &lineLabels, const Vector<PODVector<Vector2>> &pts)
+{
+    if (ImPlot::BeginPlot(graphName.CString())) {
+        unsigned i = 0;
+        for (auto&& pts : pts)
+        {
+            String line = lineLabels.Size() > i ? lineLabels[i] : String(i);
+
+            ImPlot::PlotLine(line.CString(), (ImVec2*)&pts[0], pts.Size());
+        }
+        ImPlot::EndPlot();
+    }
     return true;
 }
 
@@ -131,6 +168,23 @@ return;*/
     ImGui::End();
 }
 
+void ImGuiBackend::TestBroken()
+{
+    ImGui::Begin("Test Strides 3");
+
+    static Vector3 v;
+    for (int i = 0; i < 3; ++i)
+    {
+        auto name = ToString("Group%d",i);
+        ImGui::CollapsingHeader(name.CString(), ImGuiTreeNodeFlags_DefaultOpen);
+        float& val = (&v.x_)[i];
+        ImGui::PushID(name.CString());
+        ImGui::DragFloat("test-val", &val, 0.1f);
+        ImGui::PopID();
+    }
+    ImGui::End();
+}
+
 Backend *ImGuiBackend::CreateGroup(const String &name, bool isInput)
 {
     if (!isInput)
@@ -140,8 +194,12 @@ Backend *ImGuiBackend::CreateGroup(const String &name, bool isInput)
         return new ImGuiBackend(name, myTreeDepth_+1, seriesEntry_);
     else
     {
-        ImGuiID raii(seriesEntry_);
-        if (ImGui::CollapsingHeader(name.CString(), ImGuiTreeNodeFlags_DefaultOpen))
+        // THIS DOES NOT WORK WITH HOW I'M DOING IT NOW WITH THE VALUES
+//        ImGuiID raii(seriesEntry_);
+        BeginValue(); // So we'll try this instead.
+        bool open = ImGui::CollapsingHeader(name.CString(), ImGuiTreeNodeFlags_DefaultOpen);
+        EndValue();
+        if (open)
             return new ImGuiBackend(name, myTreeDepth_+1, seriesEntry_);
         else
             return new NoOpBackend();
@@ -196,7 +254,7 @@ Backend *ImGuiBackend::CreateSeriesEntry(const String &name, bool isInput)
         ImGui::PopStyleColor(3);
 
         if (shouldClose)
-            return {};
+            return nullptr;
         return new ImGuiBackend(name, myTreeDepth_+1, entries_[name]);
     }
     else
@@ -349,7 +407,21 @@ bool ImGuiBackend::Get(const String &name, signed long long &val)
 
 bool ImGuiBackend::Get(const String &name, float &val)
 {
+    if (name.Contains("test-val"))
+    {
+        String s;
+        for (auto i : ids)
+            s += ", " + i;
+        URHO3D_LOGERROR(s);
+    }
     BeginValue();
+    if (name.Contains("test-val"))
+    {
+        String s;
+        for (auto i : ids)
+            s += ", " + i;
+        URHO3D_LOGERROR(s);
+    }
     // Assert fails with infinite bounds.
 //    ImGui::SliderFloat(name.CString(), &val, -M_INFINITY, M_INFINITY);
 
@@ -543,14 +615,35 @@ bool Archival::Detail::ImGuiBackend::WriteConditional(bool condition, bool isInp
     return condition;
 }
 
+void ImGuiBackend::PushID(const String &id)
+{
+    ids.Push(id);
+    ImGui::PushID(id.CString());
+}
+
+void ImGuiBackend::PushID(unsigned id)
+{
+    ids.Push(String(id));
+    ImGui::PushID(id);
+}
+
+void ImGuiBackend::PopID()
+{
+    ids.Pop();
+    ImGui::PopID();
+}
+
 void ImGuiBackend::BeginValue()
 {
     if (myTreeDepth_+1 < (int)lastTreeNames_.Size())
     {
         while (myTreeDepth_+1 < (int)lastTreeNames_.Size())
         {
-            ImGui::PopID();
+            if (lastTreeSeriesEntries_.Back() != INVALID_SERIES_ENTRY)
+                PopID();
+            PopID();
             globalTreeDepth_--;
+            lastTreeSeriesEntries_.Pop();
             lastTreeNames_.Pop();
         }
     }
@@ -559,23 +652,38 @@ void ImGuiBackend::BeginValue()
     {
         if (myTreeName_ != lastTreeNames_[myTreeDepth_])
         {
-            ImGui::PopID();
-            ImGui::PushID(myTreeName_.CString());
+            if (lastTreeSeriesEntries_[myTreeDepth_] != INVALID_SERIES_ENTRY)
+                PopID();
+            PopID();
+            PushID(myTreeName_);
+            if (seriesEntry_ != INVALID_SERIES_ENTRY)
+                PushID(seriesEntry_);
             lastTreeNames_[myTreeDepth_] = myTreeName_;
+            lastTreeSeriesEntries_[myTreeDepth_] = seriesEntry_;
+        }
+        else if (seriesEntry_ != lastTreeSeriesEntries_[myTreeDepth_])
+        {
+            PopID();
+            if (seriesEntry_ != INVALID_SERIES_ENTRY)
+                PushID(seriesEntry_);
         }
     }
     else if (myTreeDepth_+1 > (int)lastTreeNames_.Size())
     {
         assert (myTreeDepth_ == (int)lastTreeNames_.Size());
-        ImGui::PushID(myTreeName_.CString());
+        PushID(myTreeName_);
         lastTreeNames_.Push(myTreeName_);
         globalTreeDepth_++;
+        if (seriesEntry_ != INVALID_SERIES_ENTRY)
+            PushID(seriesEntry_);
+        lastTreeSeriesEntries_.Push(seriesEntry_);
     }
 
     assert(myTreeDepth_+1 == (int)lastTreeNames_.Size());
 
-    if (seriesEntry_ != INVALID_SERIES_ENTRY)
-        ImGui::PushID(seriesEntry_);
+//#warning: This is broken for 2D series sort of arrangements like the Hair Strands Nodes.
+//    if (seriesEntry_ != INVALID_SERIES_ENTRY)
+//        ImGui::PushID(seriesEntry_);
 }
 
 /*
@@ -619,8 +727,8 @@ void ImGuiBackend::BeginValue()
 
 void ImGuiBackend::EndValue()
 {
-    if (seriesEntry_ != INVALID_SERIES_ENTRY)
-        ImGui::PopID();
+//    if (seriesEntry_ != INVALID_SERIES_ENTRY)
+//        ImGui::PopID();
 }
 
 float ImGuiBackend::GetSpeedHint()

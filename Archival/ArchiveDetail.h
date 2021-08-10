@@ -3,6 +3,7 @@
 #include <Urho3D/Core/Context.h>
 
 #include <Urho3D/Resource/JSONValue.h>
+#include <Urho3D/IO/Log.h>
 
 #include "Utils.h"
 
@@ -13,6 +14,43 @@ class Archive;
 namespace Detail {
 
 using namespace Urho3D;
+
+template<typename T>
+struct IsBasicType
+{
+    static constexpr bool value{false};
+};
+template<> struct IsBasicType<bool> { static constexpr bool value{true}; };
+template<> struct IsBasicType<unsigned char> { static constexpr bool value{true}; };
+template<> struct IsBasicType<signed char> { static constexpr bool value{true}; };
+template<> struct IsBasicType<unsigned short> { static constexpr bool value{true}; };
+template<> struct IsBasicType<signed short> { static constexpr bool value{true}; };
+template<> struct IsBasicType<unsigned int> { static constexpr bool value{true}; };
+template<> struct IsBasicType<signed int> { static constexpr bool value{true}; };
+template<> struct IsBasicType<unsigned long long> { static constexpr bool value{true}; };
+template<> struct IsBasicType<signed long long> { static constexpr bool value{true}; };
+
+template<> struct IsBasicType<float> { static constexpr bool value{true}; };
+template<> struct IsBasicType<double> { static constexpr bool value{true}; };
+
+template<> struct IsBasicType<String> { static constexpr bool value{true}; };
+#define EXTENDED_ARCHIVE_TYPES
+#ifdef EXTENDED_ARCHIVE_TYPES
+template<> struct IsBasicType<Urho3D::IntVector2> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::IntVector3> { static constexpr bool value{true}; };
+//template<> struct IsBasicType<Urho3D::IntVector4> { static constexpr bool value{true}; };
+
+template<> struct IsBasicType<Urho3D::Vector2> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Vector3> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Vector4> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Quaternion> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Color> { static constexpr bool value{true}; };
+
+template<> struct IsBasicType<Urho3D::Matrix3> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Matrix3x4> { static constexpr bool value{true}; };
+template<> struct IsBasicType<Urho3D::Matrix4> { static constexpr bool value{true}; };
+#endif
+
 
 /// A hint to the backend about how to treat a value.
 struct Hint
@@ -518,8 +556,8 @@ public:
     {
         if (seriesEntry_ != INVALID_SERIES_ENTRY)
         {
-            assert(object_.IsArray());
-            if (!isInput || seriesEntry_ < object_.Size())
+//            assert(object_.IsArray());
+            if (!isInput || (object_.IsArray() && seriesEntry_ < object_.Size()))
                 return object_[seriesEntry_];
             else
                 return empty;

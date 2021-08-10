@@ -5,7 +5,7 @@
 #include "ArchiveDetail.h"
 
 
-#include <Urhox/Urhox.h>
+//#include <Urhox/Urhox.h>
 #include <ImGui/imgui.h>
 
 inline namespace Archival {
@@ -42,9 +42,16 @@ public:
 
     /// Utility method to create a graph from the provided points.
     static bool Graph(const String &name, const float *pts, unsigned count, unsigned dataStride = sizeof(float));
+    /// Utility method to create a graph from the provided points.
+    static bool Graph(const String &name, const float *x_data, const float *y_data, unsigned count, unsigned dataStride = sizeof(float));
+    /// Utility method to create a graph from the provided points.
+    static bool GraphMulti(const String& graphName, const StringVector& lines, const Vector<PODVector<Vector2> > &pts );
 
     /// Test IMGUI method to be called per-frame.
     static void TestImGuiUpdate();
+
+    /// Test bug in our implementation
+    static void TestBroken();
 
 
     Backend* CreateGroup(const String &name, bool isInput) override;
@@ -155,6 +162,15 @@ private:
     static int globalTreeDepth_;
     /// Holds the current tree-name stack so we know what to pop from the tree.
     static StringVector lastTreeNames_;
+    /// Holds the series entry of each of the levels.
+    static Vector<int> lastTreeSeriesEntries_;
+
+
+    /// Wrapper for push id.
+    static void PushID(const String& id);
+    static void PushID(unsigned id);
+    /// Wrapper for push id.
+    static void PopID();
 
     /// Method to be called before a value is written to IMGUI to set up the necessary IDs on the stack and such.
     void BeginValue();

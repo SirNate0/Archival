@@ -22,4 +22,28 @@ ArchiveResult<Archive, Matrix3x4> ArchiveValue(Archive& archive, const String& n
 ArchiveResult<Archive, Matrix4> ArchiveValue(Archive& archive, const String& name, Matrix4& self);
 
 ArchiveResult<Archive, Material> ArchiveValue(Archive& archive, const String& name, Material& self);
+
+ArchiveResult<Archive, Rect> ArchiveValue(Archive& archive, const String& name, Rect& self);
+
+
+/// Overload to ArchiveValue for Vector. Erases elements that fail to serialize on input.
+template<typename T>
+ArchiveResult<Archive, Vector<T>> ArchiveValue(Archive& ar, const String& name, Vector<T>&& vector)
+{
+    if (ar.SerializeSeriesSize(name,vector))
+    {
+        for (unsigned i = 0; i < vector.Size();)
+        {
+            auto& x = vector[i];
+            auto a = ar.CreateSeriesEntry(name);
+            if (!a.SerializeInline(x) && a.IsInput())
+                vector.Erase(i);
+            else
+                ++i;
+        }
+        return {ar, true, vector};
+    }
+    return {ar, false, vector};
 }
+
+};

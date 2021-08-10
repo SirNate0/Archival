@@ -384,27 +384,7 @@ private:
 
 };
 
-/*
-template<typename T>
-struct has_size_method
-{
-private:
-    typedef std::true_type yes;
-    typedef std::false_type no;
-
-    template<typename U> static auto test(int) -> decltype(std::declval<U>().size() == 1, yes());
-
-    template<typename> static no test(...);
-
-public:
-
-    static constexpr bool value = std::is_same<decltype(test<T>(0)),yes>::value;
-};
-// https://dev.krzaq.cc/post/checking-whether-a-class-has-a-member-function-with-a-given-signature/
- */
-
-
-/// The default implementation of archiving a type. Defers to Get<T>/Set<T>.
+/// The default implementation of archiving a type. Defers to Get<T>/Set<T> for basic types, attempts to call ArchiveValue(Archive&,const String&) for other types.
 /// Get/Set must exist for the types bool, int, unsigned, float, and String.
 ///         Maybe also for null, (unsigned) short, (unsigned) long, and double.
 /// Values may possibly be cast between different types by the underlying implementation, e.g. XML stores all as a String.
@@ -412,11 +392,44 @@ public:
 template<class Archive, typename T>
 ArchiveResult<Archive, T> ArchiveValue(Archive& ar, const String& name, T& value)
 {
+    using Unqualified = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+    if constexpr (!Detail::IsBasicType<Unqualified>::value)
+    {
+        return ArchiveResult<Archive, T>(ar, value.ArchiveValue(ar,name), value);
+    }
+    else
+    {
+        if (ar.IsInput())
+            return ArchiveResult<Archive, T>(ar, ar.GetBackend().Get(name, value), value);
+        else
+            return ArchiveResult<Archive, T>(ar, ar.GetBackend().Set(name, value), value);
+    }
+}
+
+/// The default implementation of archiving a type for the basic types.
+/// Get/Set must exist for the types bool, int, unsigned, float, and String.
+///         Maybe also for null, (unsigned) short, (unsigned) long, and double.
+/// Values may possibly be cast between different types by the underlying implementation, e.g. XML stores all as a String.
+/// The name "value" is reserved. It is used to handle the case of inline values (like JSON [1,2,3]).
+template<class Archive, typename T>
+ArchiveResult<Archive, T> ArchiveValueBasicTypes(Archive& ar, const String& name, T& value)
+{
     if (ar.IsInput())
         return ArchiveResult<Archive, T>(ar, ar.GetBackend().Get(name, value), value);
     else
         return ArchiveResult<Archive, T>(ar, ar.GetBackend().Set(name, value), value);
 }
+
+#define INSTANCE(float) template<class Archive>\
+ArchiveResult<Archive, float> ArchiveValue(Archive& ar, const String& name, float& value)\
+{\
+    if (ar.IsInput())\
+        return ArchiveResult<Archive, float>(ar, ar.GetBackend().Get(name, value), value);\
+    else\
+        return ArchiveResult<Archive, float>(ar, ar.GetBackend().Set(name, value), value);\
+}
+//INSTANCE(float)
+#undef INSTANCE
 
 
 /// Overload to ArchiveValue that uses the provided enum names to store the enum based on the Backend's PrefersBinaryValue().

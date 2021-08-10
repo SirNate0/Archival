@@ -26,11 +26,12 @@ include (UrhoCommon)
 set (TARGET_NAME archive-test)
 
 # Turn on C++14 (Learned this from UrhoX) 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include_directories(
-    Urhox
-    Urhox/ThirdParty
+#    Urhox
+#    Urhox/ThirdParty
+    Archival
 )
 
 # Turn on C++14
@@ -38,12 +39,12 @@ include_directories(
 
 # Add UrhoX
 # Your-external "UrhoX", add GLOBAL if the imported library is located in directories above the current.
-add_library( UrhoX STATIC IMPORTED )
+#add_library( UrhoX STATIC IMPORTED )
 # You can define two import-locations: one for debug and one for release.
-set_target_properties( UrhoX PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/libUrhox.a )
+#set_target_properties( UrhoX PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/libUrhox.a )
 
 # Define source files
-define_source_files (GLOB_CPP_PATTERNS *.cpp virtualGizmo3D/*.cpp *.h virtualGizmo3D/*.h implot/*.cpp implot/*.h *.inl)
+define_source_files (GLOB_CPP_PATTERNS *.cpp virtualGizmo3D/*.cpp *.h virtualGizmo3D/*.h implot/*.cpp implot/*.h *.inl Archival/*cpp Archival/*.h Archival/*/*.h Archival/*/*.cpp)
 
 # disable grouping (maybe) NEL
 #set_property(GLOBAL PROPERTY USE_FOLDERS OFF)
@@ -52,7 +53,7 @@ source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SOURCE_FILES})
 # Setup target with resource copying
 setup_main_executable ()
 
-TARGET_LINK_LIBRARIES(${TARGET_NAME} UrhoX)
+#TARGET_LINK_LIBRARIES(${TARGET_NAME} UrhoX)
 
 # Setup test cases
 if (URHO3D_ANGELSCRIPT)
