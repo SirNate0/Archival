@@ -25,7 +25,7 @@ bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEx& e
 
 namespace future {
 //template<>
-bool future::Archiver<OtherNamespace::ExampleS>::ArchiveValue(ArchiveExample& ar, const String& name, future::Archiver<OtherNamespace::ExampleS>::T& ex)
+bool future::Archiver<OtherNamespace::ExampleS&>::ArchiveValue(ArchiveExample& ar, const String& name, future::Archiver<OtherNamespace::ExampleS&>::T& ex)
 {
     URHO3D_LOGINFO("Successful Specialization: " + name);
     ar.Serialize("f",ex.a);

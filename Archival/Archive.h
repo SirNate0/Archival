@@ -10,7 +10,7 @@ namespace future
 struct ArchiveExample
 {
     template <typename T>
-    void Serialize(const String& name, T& val);
+    bool Serialize(const String& name, T&& val);
 
     bool isInput;
     bool IsInput() const { return isInput; }
@@ -46,14 +46,16 @@ struct is_ArchiveValueEx_available<T,
 template< typename T> inline constexpr bool is_ArchiveValueEx_available_v =
           is_ArchiveValueEx_available<T>::value;
 
-template< class T> class false_on_instantiation : std::false_type {};
+template< class T> class false_on_instantiation : public std::false_type {};
 
 template <typename T>
 struct Archiver
 {
-    static bool ArchiveValue(ArchiveExample& a, const String& name, T& val)
+    static bool ArchiveValue(ArchiveExample& a, const String& name, T&& val)
     {
-        if constexpr (Archival::Detail::IsBasicType<T>::value)
+//        static_assert(Archival::Detail::IsBasicType<std::remove_reference_t<T>>::value,"Check True");
+//        static_assert(!Archival::Detail::IsBasicType<std::remove_reference_t<T>>::value,"Check False");
+        if constexpr (Archival::Detail::IsBasicType<std::remove_reference_t<T>>::value)
         {
             // Call Get or Set
             if (a.IsInput())
@@ -66,11 +68,11 @@ struct Archiver
             }
             return true;
         }
-        else if constexpr (has_ArchiveValue_method<T>::value)
+        else if constexpr (has_ArchiveValue_method<std::remove_reference_t<T>>::value)
         {
             return val.ArchiveValue(a,name);
         }
-        else if constexpr (is_ArchiveValueEx_available_v<T>)
+        else if constexpr (is_ArchiveValueEx_available_v<std::remove_reference_t<T>>)
         {
             return ArchiveValueEx(a,name,val);
         }
@@ -84,9 +86,9 @@ struct Archiver
 
 
 template <typename T>
-void ArchiveExample::Serialize(const String& name, T& val)
+bool ArchiveExample::Serialize(const String& name, T&& val)
 {
-    Archiver<T>::ArchiveValue(*this,name,val);
+    return Archiver<T>::ArchiveValue(*this,name,std::forward<T>(val));
 }
 
 

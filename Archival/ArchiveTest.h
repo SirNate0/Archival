@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Archive.h"
+#include "ArchiveUtils.h"
 
 
 #include <Urho3D/Container/Str.h>
@@ -41,13 +42,36 @@ struct ExampleS
     String c;
 };
 
+
+class ExampleGS
+{
+    float a;
+    String c;
+public:
+
+    float getA() const;
+    void setA(float value);
+    String getC() const;
+    void setC(const String& value);
+};
+
+inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleGS& ex)
+{
+    using namespace future;
+    URHO3D_LOGINFO("Successful External Function: " + name);
+    ar.Serialize("f(GS)",GetSet2(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1)));
+//    ar.Serialize("i",ex.b);
+//    ar.Serialize("s",ex.c);
+    return true;
+}
+
 }
 
 namespace future
 {
 
 template <>
-struct Archiver<Urho3D::ExampleS>
+struct Archiver<Urho3D::ExampleS&>
 {
     using T = Urho3D::ExampleS;
     static bool ArchiveValue(ArchiveExample& ar, const String& name, T& ex);
@@ -89,7 +113,7 @@ struct ExampleS
 namespace future
 {
 template <>
-struct Archiver<OtherNamespace::ExampleS>
+struct Archiver<OtherNamespace::ExampleS&>
 {
     using T = OtherNamespace::ExampleS;
     static bool ArchiveValue(ArchiveExample& ar, const String& name, T& ex);
