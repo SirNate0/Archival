@@ -11,16 +11,6 @@ bool Example::ArchiveValue(future::ArchiveExample& ar, const Urho3D::String& nam
     return true;
 }
 
-String ExampleGS::getC() const
-{
-    return c;
-}
-
-void ExampleGS::setC(const String& value)
-{
-    c = value;
-}
-
 float ExampleGS::getA() const
 {
     URHO3D_LOGINFO("Got A");
@@ -29,8 +19,32 @@ float ExampleGS::getA() const
 
 void ExampleGS::setA(float value)
 {
-    URHO3D_LOGINFO("Set A");
+    URHO3D_LOGINFO("Set A = " + String(value));
     a = value;
+}
+
+int ExampleGS::getB() const
+{
+    URHO3D_LOGINFO("Got B");
+    return b;
+}
+
+void ExampleGS::setB(int value)
+{
+    URHO3D_LOGINFO("Set B = " + String(value));
+    b = value;
+}
+
+String ExampleGS::getC() const
+{
+    URHO3D_LOGINFO("Got C");
+    return c;
+}
+
+void ExampleGS::setC(const String& value)
+{
+    URHO3D_LOGINFO("Set C = " + value);
+    c = value;
 }
 
 }
@@ -81,11 +95,15 @@ void TestArchive()
 
     // Test the Utils
     {
+        using namespace future;
         ExampleGS exgs;
         archive.Serialize("function+GS",exgs);
 
         ExampleEnum exenum{ExampleEnum::AAAAH};
         archive.Serialize("specialization+enum",exenum);
+
+        archive.Serialize("method+enum+DEFAULT",WithDefault2(exenum,ExampleEnum::AAAAH));
+
 
     }
 }

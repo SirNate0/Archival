@@ -28,6 +28,11 @@ struct GetSet2Holder
     Setter setter;
     using Type = T;
 
+    // Operators to allow the WithDefault behavior
+    bool operator == (const T& rhs) { return getter() == rhs; }
+    bool operator != (const T& rhs) { return getter() != rhs; }
+    void operator=(const T& rhs) { setter(rhs); }
+
     /// An easter egg: Go() returns itself. It's solely so that you can have GetSet(...).Go()
     GetSet2Holder& Go() { return *this; }
 
@@ -177,6 +182,39 @@ struct Archiver<EnumNames2Holder<Enum, Strings, CASE_SENSITIVE>>
         return good;
     }
 };
+
+///TODO: Default Holder
+template<class T, class Default>
+struct WithDefault2Holder
+{
+    T& archiveValue;
+    Default defaultValue;
+
+    bool ArchiveValue(ArchiveExample& ar, const String& name)
+    {
+        // Write the conditional check for binary output / only output the value when it is not the default for the text value.
+        if (/*TODO: ar.GetBackend()->AlwaysOutputDefault() || */ar.WriteConditional(archiveValue != defaultValue))
+        {
+            URHO3D_LOGINFO("WriteCond Match - input or not default.");
+            if ((!ar.Serialize(name,archiveValue) && ar.IsInput()))
+            {
+                URHO3D_LOGINFO("Failed to serialize and we are input - assigning.");
+                archiveValue = defaultValue;
+            }
+            else URHO3D_LOGINFO("Successful serialization and we are input - not assigning default.");
+
+            // TODO: if (ar.GetBackend()->GetHint(RESET_TO_DEFAULT)) { archiveValue = defaultValue; ar.GetBackend()->ClearHint(RESET_TO_DEFAULT) }
+        }
+        else URHO3D_LOGINFO("WriteCond failed - output and default.");
+
+        return true;
+    }
+};
+
+
+template<typename T, typename Default>
+WithDefault2Holder<T,Default> WithDefault2(T&& val, Default&& def) { return {val, std::forward<Default>(def)}; }
+
 
 
 }

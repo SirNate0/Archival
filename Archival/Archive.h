@@ -17,6 +17,8 @@ struct ArchiveExample
     bool isInput;
     bool IsInput() const { return isInput; }
 
+    /// Allows binary to bake conditional choices and text to skip optional entries.
+    bool WriteConditional(bool value) { return isInput || value; }
 };
 
 // https://dev.krzaq.cc/post/checking-whether-a-class-has-a-member-function-with-a-given-signature/
