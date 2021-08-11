@@ -68,6 +68,27 @@ inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, Examp
     return true;
 }
 
+enum class ExampleEnum
+{
+    Cat,
+    Dog,
+    Bird,
+    AAAAH,
+};
+
+inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEnum& ex)
+{
+    const char* names[] = {
+        "Cat",
+        "Dog",
+        "Bird",
+        "AAAAH",
+        nullptr
+    };
+
+    return ar.Serialize(name,future::EnumNames2(ex,names));
+}
+
 }
 
 namespace future

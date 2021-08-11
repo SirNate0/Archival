@@ -103,8 +103,8 @@ const String DemangledName_v = DemangledName<T>();
 template <typename T>
 bool ArchiveExample::Serialize(const String& name, T&& val)
 {
-    const auto& tname = DemangledName_v<T>;
-    URHO3D_LOGDEBUG("Serializing "+ tname);
+//    const auto& tname = DemangledName_v<T>;
+//    URHO3D_LOGDEBUG("Serializing "+ tname);
     return Archiver<T>::ArchiveValue(*this,name,std::forward<T>(val));
 }
 

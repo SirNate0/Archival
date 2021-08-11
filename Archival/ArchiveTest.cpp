@@ -83,6 +83,10 @@ void TestArchive()
     {
         ExampleGS exgs;
         archive.Serialize("function+GS",exgs);
+
+        ExampleEnum exenum{ExampleEnum::AAAAH};
+        archive.Serialize("specialization+enum",exenum);
+
     }
 }
 }
