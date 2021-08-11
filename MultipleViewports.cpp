@@ -61,6 +61,7 @@
 #include "Archival/ImGuiBackend.h"
 
 #include "Archival/Archive.h"
+#include "Archival/ArchiveTest.h"
 
 URHO3D_DEFINE_APPLICATION_MAIN(MultipleViewports)
 
