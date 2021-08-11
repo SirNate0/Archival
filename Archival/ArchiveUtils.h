@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "Archive.h"
 
 namespace future {
@@ -22,8 +24,8 @@ bool CallReturningBool(Fn& fn, typename std::enable_if<std::is_same<typename std
 template<typename Getter, typename Setter, class T = typename std::result_of<Getter()>::type>
 struct GetSet2Holder
 {
-    Getter& getter;
-    Setter& setter;
+    Getter getter;
+    Setter setter;
     using Type = T;
 
     /// An easter egg: Go() returns itself. It's solely so that you can have GetSet(...).Go()
@@ -59,5 +61,16 @@ struct GetSet2Holder
 /// Convenience function to deduce the type for a GetSetHolder based on the getter and setter.
 template<typename Getter, typename Setter, class T = typename std::result_of<Getter()>::type>
 GetSet2Holder<Getter,Setter,T> GetSet2(Getter&&g, Setter&&s) { return {g,s}; }
+
+/// Convenience function to deduce the type for a GetSetHolder based on the getter and setter.
+template<class Object, typename Getter, typename Setter>
+auto ObjectGetSet2(Object&& o, Getter&&g, Setter&&s) {
+//    auto getter = std::bind(std::forward<Getter>(g),std::forward<Object>(o));
+//    auto setter = std::bind(std::forward<Setter>(s),std::forward<Object>(o),std::placeholders::_1);
+//    return GetSet2(getter,setter);
+    auto res = GetSet2(std::bind(std::forward<Getter>(g),std::forward<Object>(o)),std::bind(std::forward<Setter>(s),std::forward<Object>(o),std::placeholders::_1));
+    return res;
+}
+
 
 }

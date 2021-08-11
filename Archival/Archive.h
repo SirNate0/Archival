@@ -2,6 +2,8 @@
 
 #include "Archive-old.h"
 
+#include <typeinfo>
+#include <cxxabi.h>
 
 namespace future
 {
@@ -86,8 +88,23 @@ struct Archiver
 
 
 template <typename T>
+inline String DemangledName()
+{
+    auto name = typeid (T).name();
+    auto demangled = __cxxabiv1::__cxa_demangle(name,nullptr,nullptr,nullptr);
+    String s(demangled);
+    free(demangled);
+    return s;
+}
+
+template<typename T>
+const String DemangledName_v = DemangledName<T>();
+
+template <typename T>
 bool ArchiveExample::Serialize(const String& name, T&& val)
 {
+    const auto& tname = DemangledName_v<T>;
+    URHO3D_LOGDEBUG("Serializing "+ tname);
     return Archiver<T>::ArchiveValue(*this,name,std::forward<T>(val));
 }
 

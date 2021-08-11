@@ -60,6 +60,9 @@ inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, Examp
     using namespace future;
     URHO3D_LOGINFO("Successful External Function: " + name);
     ar.Serialize("f(GS)",GetSet2(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1)));
+    auto gs = GetSet2(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1));
+    ar.Serialize("f2(GS)",gs);
+    ar.Serialize("s:O(GS)",ObjectGetSet2(ex,&ExampleGS::getC,&ExampleGS::setC));
 //    ar.Serialize("i",ex.b);
 //    ar.Serialize("s",ex.c);
     return true;
