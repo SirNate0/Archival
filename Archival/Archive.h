@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "Archive-old.h"
-
 #include <tuple>
 #include <functional>
 #include <type_traits>
@@ -44,7 +42,7 @@ bool CallReturningBool(Fn& fn, typename std::enable_if<std::is_same<typename std
 
 using String=Urho3D::String;
 
-struct Archive;
+class Archive;
 
 /// "Magic" class that allows conditional serialization through providing Then() and Else() that will serialize based on the result of the previous Serialization/WriteConditional call.
 /// Provides an operator bool() overload so Serialization can still be checked in a boolean success/fail manner. The originating Archive must live as long as the results.
