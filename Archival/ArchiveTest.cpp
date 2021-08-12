@@ -55,7 +55,7 @@ namespace future {
 bool Archiver<Urho3D::ExampleS&>::ArchiveValue(future::ArchiveExample& ar, const String& name, future::Archiver<Urho3D::ExampleS&>::T& ex)
 {
     URHO3D_LOGINFO("Successful Specialization: " + name);
-    ar.Serialize("f",ex.a);
+    ar.Serialize("f",ex.a).Else("f2");
     ar.Serialize("i",ex.b);
     ar.Serialize("s",ex.c);
     return true;
@@ -70,8 +70,7 @@ void TestArchive()
 {
     static bool input = false;
     input = !input;
-    future::ArchiveExample archive;
-    archive.isInput = input;
+    future::ArchiveExample archive{input};
 
     // Test in this namespace
     {
@@ -104,7 +103,13 @@ void TestArchive()
 
         archive.Serialize("method+enum+DEFAULT",WithDefault2(exenum,ExampleEnum::AAAAH));
 
+    }
 
+    // Test extended features (groups and series)
+    {
+        Vector3 vec{1,2,3};
+        String FIN = "FIN";
+        archive.Serialize("vec",vec.x_,vec.y_,vec.z_,FIN);
     }
 }
 }
