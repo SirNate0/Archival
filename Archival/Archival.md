@@ -39,8 +39,16 @@ for (auto& x : v)
 	archive.CreateSeriesEntry('vec',x);
 ```
 
+Internally this is implemented by returning a `new Backend` that is used to create a new `Archive` wrapper, and the backend is responsible for managing the series behavior. 
+
 #### Groups
-The backend must also support a group structure. In JSON, this would be a table. These are a collection of uniquely named values, which themselves may be basic values, Series, or Groups. This will be the principle usage for complex custom types (simpler types like Vector3 or a Color may prefer using a Series of floats or a string representaiton). The member variable names can be used as the group member names, perhaps converted to a more readable form (e.g. with spaces). Note that the backend may modify the names to conform to backend-specific requirements (e.g. XML node name requirements). These modifications may not preserve similar names, e.g. variations of case, of spacing, and posibly of punctuation/hyphenation, though ideally that would be supported. For dynamic names, for example, a `HashMap<String, Color>` the backend exposes the option to read/write the series names to the archive, which the Archive exposes to the user.
+The backend must also support a group structure. In JSON, this would be a table. These are a collection of uniquely named values, which themselves may be basic values, Series, or Groups. This will be the principle usage for complex custom types (simpler types like Vector3 or a Color may prefer using a Series of floats or a string representaiton). The member variable names can be used as the group member names, perhaps converted to a more readable form (e.g. with spaces). 
+For dynamic names, for example, a `HashMap<String, Color>` the backend exposes the option to read/write the series names to the archive, which the Archive exposes to the user.
+
+Internally this is implemented by returning a `new Backend` that is used to create a new `Archive` wrapper, and the backend is responsible for managing the group behavior.
+
+**Note** that the backend may modify the names to conform to backend-specific requirements (e.g. XML node name requirements). These modifications may not preserve similar names, e.g. variations of case, of spacing, and posibly of punctuation/hyphenation, though ideally that would be supported. 
+
 
 #### Extended Types
 Backends may have builtin support for other types beyond the ones listed above. For example, the Urho3D JSON interfaces support a Variant type, and it's XML interface suports VectorN types. Support for custom types is advertisized through virtual functions in the Backend interface, specifically through `virtual bool Supports(const CustomType& /*unused*/) = 0;` interfaces. Note that the parameter MUST actually be unused for correct functioning - it is not possible to conditionally support a CustomType (e.g. supporting a Vector3 iff it is finite) as the condition cannot be known symmetrically in reading and writing. The parameter is simply included so the compiler will select the correct overload. Given the intrusive nature of this change to the Archival library, it is recommended to simply create an `ArchiveValue` implementation that will handle the special case directly. The Backend includes a name by which it might be identified at run-time (in addition to the option of a `dynamic_cast`, so it is possible to specialize behavior for a given type per-backend in the user code.
@@ -53,3 +61,40 @@ The `Archive` class is the primary frontend to the Archival library. It must be 
 2. If `T` has an `bool ArchiveValue(Archive& archive, const String& name)` method it calls it.
 3. If there exists a `bool ArchiveValue(Archive& archive, const String& name, T& value)` it calls it.
 3. A static assert directing the user to specialize the `Archiver` for `T`, as this is how external archive specialization is handled.
+
+Beyond `Serialize`, `Archive` exposes methods to create Groups/Series, and to serialize their names/sizes. Additionally, there are `Inline` variants of each of those operations, that attempt to serialize a value inline. As a JSON example, rather than
+` { "OuterScope" : { "value" : 3 } } `
+the inline equivalent would be
+` { "OuterScope" : 3  } `. 
+
+This is particularly useful for series, since the default behavior of the `JSONBackend` is to use Tables. With inline values, you can have the nicer
+` { "Vec" : [1,2,3] } `
+rather than the ugly
+` { "Vec" : [{ "value" : 1 },{ "value" : 2 },{ "value" : 3 }] } `.
+
+The inline equivalent of a group is less intuative, but more useful. In many ways you can think of it as being like the `'../'` path. An inline Group in the JSON backend is actually the outer Table. This allows you to embed child elements directly in the parent, provided the name does not conflict. Consider a contrived example:
+
+```
+struct Vertex { Vector3 pos; Color col; };
+```
+Rather than this ending up in JSON as 
+```
+"aVertex":{
+"pos" : {"x":1.0,"y":2.0,"z":3.0},
+"col" : {"r":1.0,"g":0.0,"b":0.0,"a":1.0}
+}
+```
+it is possible to merge the two children by serializing them both inline so that it is 
+```
+"aVertex":{
+"x":1.0,
+"y":2.0,
+"z":3.0,
+"r":1.0,
+"g":0.0,
+"b":0.0,
+"a":1.0
+}
+```
+
+This also illustrates the limitation of this approach - if we added another Vector3 for the normal, for example, it would not be possible to serialize both inline, as the values would overwrite one another. For that matter, we couldn't even add a Vector2, as the "x" and "y" values would conflict. That said, this example is probably not the best use for the approach. A better one, is it allows embedding a base class's serialization into the group created by a child class.
