@@ -14,7 +14,7 @@ struct Example
     int b;
     String c;
 
-    bool ArchiveValue(future::ArchiveExample& ar, const String& name);
+    bool ArchiveValue(Archival::Archive& ar, const String& name);
 };
 
 
@@ -25,7 +25,7 @@ struct ExampleEx
     String c;
 };
 
-inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEx& ex)
+inline bool ArchiveValueEx(Archival::Archive& ar, const String& name, ExampleEx& ex)
 {
     URHO3D_LOGINFO("Successful External Function: " + name);
     ar.Serialize("f",ex.a);
@@ -60,19 +60,19 @@ public:
     void setC(const String& value);
 };
 
-inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleGS& ex)
+inline bool ArchiveValueEx(Archival::Archive& ar, const String& name, ExampleGS& ex)
 {
-    using namespace future;
+    using namespace Archival;
     URHO3D_LOGINFO("Successful External Function: " + name);
-    ar.Serialize("f(GS)",GetSet2(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1)));
-//    auto gs = GetSet2(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1));
+    ar.Serialize("f(GS)",GetSet(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1)));
+//    auto gs = GetSet(std::bind(&ExampleGS::getA,ex),std::bind(&ExampleGS::setA,ex,std::placeholders::_1));
 //    ar.Serialize("f2(GS)",gs);
 
-    ar.Serialize("s:O(GS):default",WithDefault2(ObjectGetSet2(ex,&ExampleGS::getB,&ExampleGS::setB),3));
+    ar.Serialize("s:O(GS):default",WithDefault(ObjectGetSet(ex,&ExampleGS::getB,&ExampleGS::setB),3));
     ex.setB(3);
-    ar.Serialize("s:O(GS):default",WithDefault2(ObjectGetSet2(ex,&ExampleGS::getB,&ExampleGS::setB),3));
+    ar.Serialize("s:O(GS):default",WithDefault(ObjectGetSet(ex,&ExampleGS::getB,&ExampleGS::setB),3));
 
-    ar.Serialize("s:O(GS)",ObjectGetSet2(ex,&ExampleGS::getC,&ExampleGS::setC));
+    ar.Serialize("s:O(GS)",ObjectGetSet(ex,&ExampleGS::getC,&ExampleGS::setC));
 
 //    ar.Serialize("i",ex.b);
 //    ar.Serialize("s",ex.c);
@@ -87,7 +87,7 @@ enum class ExampleEnum
     AAAAH,
 };
 
-inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEnum& ex)
+inline bool ArchiveValueEx(Archival::Archive& ar, const String& name, ExampleEnum& ex)
 {
     const char* names[] = {
         "Cat",
@@ -97,24 +97,26 @@ inline bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, Examp
         nullptr
     };
 
-    return ar.Serialize(name,future::EnumNames2(ex,names));
+    return ar.Serialize(name,Archival::EnumNames(ex,names));
 }
 
 }
 
-namespace future
+namespace Archival
 {
 
 template <>
 struct Archiver<Urho3D::ExampleS&>
 {
     using T = Urho3D::ExampleS;
-    static bool ArchiveValue(ArchiveExample& ar, const String& name, T& ex);
+    static bool ArchiveValue(Archive& ar, const String& name, T& ex);
 };
 }
 
 namespace OtherNamespace
 {
+
+using namespace Urho3D;
 
 struct Example
 {
@@ -122,7 +124,7 @@ struct Example
     int b;
     String c;
 
-    bool ArchiveValue(future::ArchiveExample& ar, const String& name);
+    bool ArchiveValue(Archival::Archive& ar, const String& name);
 };
 
 
@@ -133,7 +135,7 @@ struct ExampleEx
     String c;
 };
 
-bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEx& ex);
+bool ArchiveValueEx(Archival::Archive& ar, const String& name, ExampleEx& ex);
 
 
 struct ExampleS
@@ -145,13 +147,13 @@ struct ExampleS
 }
 
 
-namespace future
+namespace Archival
 {
 template <>
 struct Archiver<OtherNamespace::ExampleS&>
 {
     using T = OtherNamespace::ExampleS;
-    static bool ArchiveValue(ArchiveExample& ar, const String& name, T& ex);
+    static bool ArchiveValue(Archive& ar, const String& name, T& ex);
 };
 }
 

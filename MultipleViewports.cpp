@@ -90,7 +90,7 @@ void MultipleViewports::Setup()
 
 void MultipleViewports::Start()
 {
-    Detail::ImGuiBackend::RegisterBackend(context_);
+    Archival::Detail::ImGuiBackend::RegisterBackend(context_);
 
 
 //    TestBezierCurves();
@@ -683,6 +683,7 @@ void MultipleViewports::HandleUpdate(StringHash eventType, VariantMap& eventData
     {
         using Archival::Detail::ImGuiBackend;
         using Archival::Archive;
+        using namespace Archival;
         Archive ar(true, new ImGuiBackend("Application"));
         ar.Serialize("Draw Debug", drawDebug_);
         ar.Serialize("Draw Skeleton", drawSkeleton_);
@@ -691,6 +692,8 @@ void MultipleViewports::HandleUpdate(StringHash eventType, VariantMap& eventData
         ar.Serialize("Joystick Index", joystickIndex_);
         ar.Serialize("Plane", GetSet([&](){return floorViewNode_->IsEnabled();}, [&](bool e){floorViewNode_->SetEnabled(e);}))
                 .Then(">Height",GetSet([&](){return floorViewNode_->GetPosition().y_;}, [&](float val){floorViewNode_->SetPosition({0,val,0});}));
+        static Vector3 vec3{1,2,3};
+        ar.Serialize("Vec3",vec3);
 //        gv->GetComponent<CharacterController>()->SetJoystickIndex(joystickIndex_);
     }
 

@@ -4,25 +4,12 @@
 
 #include "Archive.h"
 
-namespace future {
-
-namespace detail {
-
-template<class Fn, class T, class...Extra>
-bool CallReturningBool(Fn& fn, T&& val, Extra...) { fn(std::forward<T>(val)); return true; }
-
-template<class Fn, class T>
-bool CallReturningBool(Fn& fn, typename std::enable_if<std::is_same<typename std::result_of<Fn(T)>::type, void>::value, T>::type&& val)
-{
-    return fn(std::forward<T>(val));
-}
-
-}
+namespace Archival {
 
 
 /// Holder to specialize ArchiveValue on to handle the case of a get and set function instead of a variable reference.
 template<typename Getter, typename Setter, class T = typename std::result_of<Getter()>::type>
-struct GetSet2Holder
+struct GetSetHolder
 {
     Getter getter;
     Setter setter;
@@ -34,7 +21,7 @@ struct GetSet2Holder
     void operator=(const T& rhs) { setter(rhs); }
 
     /// An easter egg: Go() returns itself. It's solely so that you can have GetSet(...).Go()
-    GetSet2Holder& Go() { return *this; }
+    GetSetHolder& Go() { return *this; }
 
     template<class U>
     bool CallSetter(U&& value)
@@ -42,7 +29,7 @@ struct GetSet2Holder
         return detail::CallReturningBool(setter, std::forward<U>(value));
     }
 
-    bool ArchiveValue(ArchiveExample& ar, const String& name)
+    bool ArchiveValue(Archive& ar, const String& name)
     {
 //        using GS = GetSetHolder<Getter, Setter, T>;
         if (ar.IsInput())
@@ -65,22 +52,22 @@ struct GetSet2Holder
 
 /// Convenience function to deduce the type for a GetSetHolder based on the getter and setter.
 template<typename Getter, typename Setter, class T = typename std::result_of<Getter()>::type>
-GetSet2Holder<Getter,Setter,T> GetSet2(Getter&&g, Setter&&s) { return {g,s}; }
+GetSetHolder<Getter,Setter,T> GetSet(Getter&&g, Setter&&s) { return {g,s}; }
 
 /// Convenience function to deduce the type for a GetSetHolder based on the getter and setter.
 template<class Object, typename Getter, typename Setter>
-auto ObjectGetSet2(Object&& o, Getter&&g, Setter&&s) {
+auto ObjectGetSet(Object&& o, Getter&&g, Setter&&s) {
 //    auto getter = std::bind(std::forward<Getter>(g),std::forward<Object>(o));
 //    auto setter = std::bind(std::forward<Setter>(s),std::forward<Object>(o),std::placeholders::_1);
-//    return GetSet2(getter,setter);
-    auto res = GetSet2(std::bind(std::forward<Getter>(g),std::forward<Object>(o)),std::bind(std::forward<Setter>(s),std::forward<Object>(o),std::placeholders::_1));
+//    return GetSet(getter,setter);
+    auto res = GetSet(std::bind(std::forward<Getter>(g),std::forward<Object>(o)),std::bind(std::forward<Setter>(s),std::forward<Object>(o),std::placeholders::_1));
     return res;
 }
 
 
 /// Class that holds an enum value and associated string names.
 template<typename Enum, typename StringsContainer = const char **, bool CASE_SENSITIVE = true>
-struct EnumNames2Holder
+struct EnumNamesHolder
 {
     Enum& value;
     StringsContainer enumNames;
@@ -109,7 +96,7 @@ struct EnumNames2Holder
 
 /// Class that holds an enum value and associated string names. Specialized for an array of const char *'s with a {0} sentinel for the end.
 template<typename Enum, bool CASE_SENSITIVE>
-struct EnumNames2Holder<Enum, const char **, CASE_SENSITIVE>
+struct EnumNamesHolder<Enum, const char **, CASE_SENSITIVE>
 {
     Enum& value;
     const char ** enumNames;
@@ -140,18 +127,18 @@ struct EnumNames2Holder<Enum, const char **, CASE_SENSITIVE>
 };
 
 template<typename Enum, typename StringsContainer>
-EnumNames2Holder<Enum, StringsContainer, false> EnumNames2(Enum& val, StringsContainer&& names) { return {val, names}; }
+EnumNamesHolder<Enum, StringsContainer, false> EnumNames(Enum& val, StringsContainer&& names) { return {val, names}; }
 
 template<typename Enum, typename StringsContainer>
-EnumNames2Holder<Enum, StringsContainer, true> EnumNames2CaseSensitive(Enum& val, StringsContainer&& names) { return {val, names}; }
+EnumNamesHolder<Enum, StringsContainer, true> EnumNamesCaseSensitive(Enum& val, StringsContainer&& names) { return {val, names}; }
 
 
 /// Overload to ArchiveValue that uses the provided enum names to store the enum based on the Backend's PrefersBinaryValue().
 template<typename Enum, typename Strings, bool CASE_SENSITIVE>
-struct Archiver<EnumNames2Holder<Enum, Strings, CASE_SENSITIVE>>
+struct Archiver<EnumNamesHolder<Enum, Strings, CASE_SENSITIVE>>
 {
-    using T = EnumNames2Holder<Enum, Strings, CASE_SENSITIVE>;
-    static bool ArchiveValue(ArchiveExample& ar, const String& name, T&& enumNames)
+    using T = EnumNamesHolder<Enum, Strings, CASE_SENSITIVE>;
+    static bool ArchiveValue(Archive& ar, const String& name, T&& enumNames)
     {
         using intType = typename std::underlying_type<Enum>::type;
 
@@ -168,11 +155,11 @@ struct Archiver<EnumNames2Holder<Enum, Strings, CASE_SENSITIVE>>
         if constexpr (false)
         {
             good = ar.Serialize(name, val)
-                    .Else(name, GetSet2([&](){return enumNames.EnumToString();},
+                    .Else(name, GetSet([&](){return enumNames.EnumToString();},
             [&](const String& name){ return enumNames.StringToEnum(name);}));
         }
         else {
-            good = ar.Serialize(name, GetSet2([&](){return enumNames.EnumToString();},
+            good = ar.Serialize(name, GetSet([&](){return enumNames.EnumToString();},
             [&](const String& name){ return enumNames.StringToEnum(name);}))
 //                    .Else(name, val);
                     ;
@@ -183,17 +170,17 @@ struct Archiver<EnumNames2Holder<Enum, Strings, CASE_SENSITIVE>>
     }
 };
 
-///TODO: Default Holder
+/// Holder for a default value. It need not be the same type as the value being archived, but it must be assignable.
 template<class T, class Default>
-struct WithDefault2Holder
+struct WithDefaultHolder
 {
     T& archiveValue;
     Default defaultValue;
 
-    bool ArchiveValue(ArchiveExample& ar, const String& name)
+    bool ArchiveValue(Archive& ar, const String& name)
     {
         // Write the conditional check for binary output / only output the value when it is not the default for the text value.
-        if (/*TODO: ar.GetBackend()->AlwaysOutputDefault() || */ar.WriteConditional(archiveValue != defaultValue))
+        if (/*TODO: ar.GetBackend()->AlwaysOutputDefault() || */ar.WriteConditional(name + "-not-default", archiveValue != defaultValue))
         {
             URHO3D_LOGINFO("WriteCond Match - input or not default.");
             if ((!ar.Serialize(name,archiveValue) && ar.IsInput()))
@@ -213,7 +200,7 @@ struct WithDefault2Holder
 
 
 template<typename T, typename Default>
-WithDefault2Holder<T,Default> WithDefault2(T&& val, Default&& def) { return {val, std::forward<Default>(def)}; }
+WithDefaultHolder<T,Default> WithDefault(T&& val, Default&& def) { return {val, std::forward<Default>(def)}; }
 
 
 

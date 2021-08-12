@@ -1,5 +1,5 @@
 #include "Archive.h"
 
-inline namespace Archival {
+namespace Archival {
 
 }

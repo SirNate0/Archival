@@ -7,25 +7,19 @@
 namespace Urho3D
 {
 
-ArchiveResult<Archive, IntVector2> ArchiveValue(Archive &archive, const String &name, IntVector2 &self)
+bool ArchiveValue(Archive& archive, const String &name, IntVector2 &self)
 {
-    if (Archival::ArchiveValue<Archive, IntVector2>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.x_).Else("x",self.x_))
         ar.Serialize("x", self.x_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.y_).Else("y",self.y_))
         ar.Serialize("y", self.y_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Urho3D::IntVector3> ArchiveValue(Archive &archive, const String &name, IntVector3 &self)
+bool ArchiveValue(Archive& archive, const String &name, IntVector3 &self)
 {
-    if (Archival::ArchiveValue<Archive, IntVector3>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
 //    unsigned sz = 3;
@@ -38,28 +32,22 @@ ArchiveResult<Archive, Urho3D::IntVector3> ArchiveValue(Archive &archive, const 
         ar.Serialize("y", self.y_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.z_).Else("z",self.z_))
         ar.Serialize("z", self.z_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Vector2> ArchiveValue(Archive &archive, const String &name, Vector2 &self)
+bool ArchiveValue(Archive& archive, const String &name, Vector2 &self)
 {
-    if (Archival::ArchiveValue<Archive, Vector2>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.x_).Else("x",self.x_))
         ar.Serialize("x", self.x_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.y_).Else("y",self.y_))
         ar.Serialize("y", self.y_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Urho3D::Vector3> ArchiveValue(Archive &archive, const String &name, Vector3 &self)
+bool ArchiveValue(Archive& archive, const String &name, Vector3 &self)
 {
-    if (Archival::ArchiveValue<Archive, Vector3>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
 //    unsigned sz = 3;
@@ -72,14 +60,11 @@ ArchiveResult<Archive, Urho3D::Vector3> ArchiveValue(Archive &archive, const Str
         ar.Serialize("y", self.y_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.z_).Else("z",self.z_))
         ar.Serialize("z", self.z_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Vector4> ArchiveValue(Archive &archive, const String &name, Vector4 &self)
+bool ArchiveValue(Archive& archive, const String &name, Vector4 &self)
 {
-    if (Archival::ArchiveValue<Archive, Vector4>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.x_).Else("x",self.x_))
@@ -90,15 +75,11 @@ ArchiveResult<Archive, Vector4> ArchiveValue(Archive &archive, const String &nam
         ar.Serialize("z", self.z_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.z_).Else("w",self.z_))
         ar.Serialize("w", self.z_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Quaternion> ArchiveValue(Archive& archive, const String& name, Quaternion& self)
+bool ArchiveValue(Archive& archive, const String& name, Quaternion& self)
 {
-
-    if (Archival::ArchiveValue<Archive, Quaternion>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.z_).Else("w",self.z_))
@@ -109,14 +90,11 @@ ArchiveResult<Archive, Quaternion> ArchiveValue(Archive& archive, const String& 
         ar.Serialize("y", self.y_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.z_).Else("z",self.z_))
         ar.Serialize("z", self.z_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Color> ArchiveValue(Archive &archive, const String &name, Color &self)
+bool ArchiveValue(Archive& archive, const String &name, Color &self)
 {
-    if (Archival::ArchiveValue<Archive, Color>(archive, name, self))
-        return {archive, true, self};
-
     bool good = true;
     auto ar = archive.CreateGroup(name);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.r_).Else("r",self.r_))
@@ -127,14 +105,11 @@ ArchiveResult<Archive, Color> ArchiveValue(Archive &archive, const String &name,
         ar.Serialize("b", self.b_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.a_).Else("a",self.a_))
         ar.Serialize("a", self.a_);
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Matrix3> ArchiveValue(Archive &archive, const String &name, Matrix3 &self)
+bool ArchiveValue(Archive& archive, const String &name, Matrix3 &self)
 {
-    if (Archival::ArchiveValue<Archive, Matrix3>(archive, name, self))
-        return {archive, true, self};
-
     const char* names[] = {
             "m00","m01","m02"
             "m10","m11","m12"
@@ -159,14 +134,11 @@ ArchiveResult<Archive, Matrix3> ArchiveValue(Archive &archive, const String &nam
         }
 
     }
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Matrix3x4> ArchiveValue(Archive &archive, const String &name, Matrix3x4 &self)
+bool ArchiveValue(Archive& archive, const String &name, Matrix3x4 &self)
 {
-    if (Archival::ArchiveValue<Archive, Matrix3x4>(archive, name, self))
-        return {archive, true, self};
-
     const char* names[] = {
             "m00","m01","m02","m03",
             "m10","m11","m12","m13",
@@ -191,14 +163,11 @@ ArchiveResult<Archive, Matrix3x4> ArchiveValue(Archive &archive, const String &n
         }
 
     }
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Matrix4> ArchiveValue(Archive &archive, const String &name, Matrix4 &self)
+bool ArchiveValue(Archive& archive, const String &name, Matrix4 &self)
 {
-    if (Archival::ArchiveValue<Archive, Matrix4>(archive, name, self))
-        return {archive, true, self};
-
     const char* names[] = {
             "m00","m01","m02","m03",
             "m10","m11","m12","m13",
@@ -224,10 +193,10 @@ ArchiveResult<Archive, Matrix4> ArchiveValue(Archive &archive, const String &nam
         }
 
     }
-    return {archive, good, self};
+    return good;
 }
 
-ArchiveResult<Archive, Rect> ArchiveValue(Archive &archive, const String &name, Rect &self)
+bool ArchiveValue(Archive& archive, const String &name, Rect &self)
 {
 
     bool good = true;
@@ -236,7 +205,7 @@ ArchiveResult<Archive, Rect> ArchiveValue(Archive &archive, const String &name, 
         ar.Serialize("min", self.min_);
     if (!ar.CreateSeriesEntryInline().SerializeInline(self.max_).Else("max",self.max_))
         ar.Serialize("max", self.max_);
-    return {archive, good, self};
+    return good;
 }
 
 
@@ -246,7 +215,7 @@ static_assert (sizeof(SharedPtr<Material>)==sizeof(Material*), "Shared Ptr Size 
 
 static const char* textureUnitNames[10];
 TextureUnit ParseTextureUnitName(String name);
-ArchiveResult<Archive, Material> ArchiveValue(Archive &archive, const String &name, Material &self)
+bool ArchiveValue(Archive& archive, const String &name, Material &self)
 {
     auto ar = archive.CreateGroup(name);
     auto shader = ar.CreateGroup("shader");

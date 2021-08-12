@@ -1,22 +1,58 @@
 #pragma once
 
-#include "Archive-old.h"
+//#include "Archive-old.h"
 
+#include <tuple>
+#include <functional>
+#include <type_traits>
 #include <typeinfo>
 #include <cxxabi.h>
 
-namespace future
+#include <Urho3D/Container/Str.h>
+#include <Urho3D/Core/StringUtils.h>
+#include <Urho3D/Container/Vector.h>
+#include <Urho3D/IO/Log.h>
+
+#include <Urho3D/Core/Context.h>
+// Broken, so include Context before it
+#include <Urho3D/Resource/JSONValue.h>
+
+#include "ArchiveDetail.h"
+
+namespace Archival
 {
 
-struct ArchiveExample;
+
+namespace detail {
+// From https://stackoverflow.com/questions/36612596/tuple-to-parameter-pack
+template<int ...> struct seq {};
+
+template<int N, int ...S> struct gens : gens<N - 1, N - 1, S...> { };
+
+template<int ...S> struct gens<0, S...>{ typedef seq<S...> type; };
+
+template<class Fn, class T, class...Extra>
+bool CallReturningBool(Fn& fn, T&& val, Extra...) { fn(std::forward<T>(val)); return true; }
+
+template<class Fn, class T>
+bool CallReturningBool(Fn& fn, typename std::enable_if<std::is_same<typename std::result_of<Fn(T)>::type, void>::value, T>::type&& val)
+{
+    return fn(std::forward<T>(val));
+}
+
+} // namespace detail
+
+using String=Urho3D::String;
+
+struct Archive;
 
 /// "Magic" class that allows conditional serialization through providing Then() and Else() that will serialize based on the result of the previous Serialization/WriteConditional call.
 /// Provides an operator bool() overload so Serialization can still be checked in a boolean success/fail manner. The originating Archive must live as long as the results.
 template<class... T>
-class ArchiveResult2
+class ArchiveResult
 {
     /// Non-owning pointer to the originating archive.
-    ArchiveExample* archive;
+    Archive* archive;
     /// True if the last call was a success, false if it failed.
     bool succeeded;
     /// Store the values that made the call so they can be serialized with a different name (most useful in reading [1,2,3] or [{x:1},{y:2},{z:3}] type situations.
@@ -24,7 +60,7 @@ class ArchiveResult2
 
 public:
     /// Construct the ArchiveResult from the supplying archive with a last successful call result of success called with the provided values.
-    ArchiveResult2(ArchiveExample& archive, bool success, T&... values): archive{&archive}, succeeded{success}, vals{values...}
+    ArchiveResult(Archive& archive, bool success, T&... values): archive{&archive}, succeeded{success}, vals{values...}
     {}
 
 
@@ -38,14 +74,14 @@ public:
 
     /// Utility method that returns a new result with different parameters (as if the last call had been made with those instead).
     template<class... U>
-    ArchiveResult<Archive, U...> ReplaceParams(U... params)
+    ArchiveResult<U...> ReplaceParams(U... params)
     {
         return {*archive, Succeeded(), params...};
     }
 
 
     /// If the last call failed to serialize retry serialization to the same value with a new name.
-    ArchiveResult2 Else(const String& name)
+    ArchiveResult Else(const String& name)
     {
         using namespace detail;
         return ElseSeq(name, typename gens<sizeof...(T)>::type()); // Item #1
@@ -59,43 +95,39 @@ private:
 
     /// Internal method to convert the tuple to a parameter pack for the Else("newName") call.
     template<int ...S>
-    ArchiveResult2 ElseSeq(const String& name, detail::seq<S...>)
+    ArchiveResult ElseSeq(const String& name, detail::seq<S...>)
     {
         return Else(name, std::get<S>(vals) ...);
     }
 };
 
-struct ArchiveExample
+class Archive
 {
     /// Stores the backend for the archive. The backend handles the actual saving and loading of the "basic" types, allowing us to serialize classes simply by overloading the ArchiveValue function.
     Urho3D::UniquePtr<Archival::Detail::Backend> backend_;
+    /// True if this Archive sets values in the user supplied objects. Roughly this if true for read, false for write, but cases like the IMGUI backend may be read-write and require input access to set the values.
+    bool isInput_;
+public:
     /// Returns a reference to the current backend. Will return a reference to the NpOpBackend if no backend is present.
     Detail::Backend& GetBackend() { assert(backend_); return *backend_; }
 
-    ArchiveExample(bool input): backend_{new Detail::NoOpBackend()}, isInput_(input) {}
-
+    /// Constructs the archive with the NoOp backend as a default.
+    Archive(bool input): backend_{new Detail::NoOpBackend()}, isInput_(input) {}
 
     /// Construct an input/output archive as specified by moving the backend from another unique pointer.
-    ArchiveExample(bool input, Urho3D::UniquePtr<Detail::Backend>&& backend): backend_(std::move(backend)), isInput_(input) {}
+    Archive(bool input, Urho3D::UniquePtr<Detail::Backend>&& backend): backend_(std::move(backend)), isInput_(input) {}
     /// Construct an input/output archive as specified by taking ownership of a raw backend pointer.
-    ArchiveExample(bool input, Detail::Backend* backend): backend_(backend), isInput_(input) {}
+    Archive(bool input, Detail::Backend* backend): backend_(backend), isInput_(input) {}
 
-
-//    /// Placeholders for the real backend.
-//    struct BAK { String InlineName() const { return "value"; } } backend;
-//    BAK& GetBackend() { return backend; }
-
-    /// The core function. Dispatches serialization to teh Archiver.
+    /// The core function. Dispatches serialization to the Archiver.
     template <typename T>
-    ArchiveResult2<T> Serialize(const String& name, T&& val);
+    ArchiveResult<T> Serialize(const String& name, T&& val);
 
     /// Create a group in the archive with the specified name.
     /// Will try to create the group inline if the Backend::InlineName() string is passed.
-    /// Inline means {"old" : "val", **{ENTRY} } using python syntax instead of {"old" : "val", "value" : {ENTRY}}.
-    ArchiveExample CreateGroup(const String& name)
+    /// Inline means {"old" : "val", **{GROUP} } using python syntax instead of {"old" : "val", "value" : {GROUP}}.
+    Archive CreateGroup(const String& name)
     {
-        URHO3D_LOGINFO("Creating Group Entry " + name);
-
         if (auto* b = GetBackend().CreateGroup(name, IsInput()))
             return {IsInput(), b};
         return {IsInput()};
@@ -104,20 +136,16 @@ struct ArchiveExample
     /// Create a new series entry in the archive with the specified name.
     /// Will try to create the series inline if the Backend::InlineName() string is passed.
     /// Inline means "x" : [ {ENTRY} ] instead of "x" : { "value" : [ {ENTRY} ] }
-    ArchiveExample CreateSeriesEntry(const String& name)
+    Archive CreateSeriesEntry(const String& name)
     {
-//        if (Urho3D::UniquePtr<Detail::Backend> b = GetBackend().CreateSeriesEntry(name, IsInput()))
-//            return Archive(IsInput(), std::move(b));
-        URHO3D_LOGINFO("Creating Series Entry " + name);
-
         if (auto b = GetBackend().CreateSeriesEntry(name, IsInput()))
             return {IsInput(), b};
         return {IsInput()};
     }
 
-    /// Extension of the core function that implicitly creates a series for the specified values.
+    /// Extension of the core function that implicitly creates a series of inline values for the provided [val,vals...].
     template <typename T, typename... Ts>
-    ArchiveResult2<T,Ts...> Serialize(const String& name, T&& val, Ts&&... vals);
+    ArchiveResult<T,Ts...> Serialize(const String& name, T&& val, Ts&&... vals);
 
     /// Saves/Loads a value inline (if possible) to/from the archive based on IsInput(). Inline means [VAL] instead of [{"value" : VAL}].
     template<class...T>
@@ -126,8 +154,14 @@ struct ArchiveExample
         return Serialize(GetBackend().InlineName(), std::forward<T>(args)...);
     }
 
+    /// Utility method to create a series with the sentinel inline name.
+    Archive CreateSeriesEntryInline()
+    {
+        return CreateSeriesEntry(GetBackend().InlineName());
+    }
+
     /// Serializes a dynamically sized series size. Required to support the BinaryBackend. Recommended regardless to allow resizing the user's container regardless.
-    /// Calls resize on the passed object to generate a series of that size. Specialized to supply an int as well.
+    /// Calls resize on the passed object to generate a series of that size. Specialized to supply an int as well below.
     template<class Resizable, class... ExtraArgs>
     bool SerializeSeriesSize(const String& name, Resizable& v, ExtraArgs&&...args)
     {
@@ -149,11 +183,19 @@ struct ArchiveExample
         return true;
     }
 
-    bool isInput_;
+    /// Returns true if the archive is an input archive (Get's from the Backend).
     bool IsInput() const { return isInput_; }
 
     /// Allows binary to bake conditional choices and text to skip optional entries.
-    bool WriteConditional(bool value) { return isInput_ || value; }
+    ArchiveResult<> WriteConditional(const String& name, bool value)
+    {
+        return ArchiveResult<>(*this, GetBackend().WriteConditional(name, value, IsInput()));
+    }
+
+private:
+    void PushContext(void*context);
+    void PopContext();
+    friend class AddContext; // RAII class
 };
 
 // https://dev.krzaq.cc/post/checking-whether-a-class-has-a-member-function-with-a-given-signature/
@@ -164,7 +206,7 @@ private:
     typedef std::true_type yes;
     typedef std::false_type no;
 
-    template<typename U> static auto test(int) -> decltype(std::declval<U>().ArchiveValue(std::declval<ArchiveExample&>(), std::declval<const String&>()) == 1, yes());
+    template<typename U> static auto test(int) -> decltype(std::declval<U>().ArchiveValue(std::declval<Archive&>(), std::declval<const String&>()) == 1, yes());
 
     template<typename> static no test(...);
 
@@ -179,7 +221,7 @@ struct is_ArchiveValueEx_available : std::false_type {};
 template <typename T>
 struct is_ArchiveValueEx_available<T,
            std::void_t<
-        decltype(ArchiveValueEx(std::declval<ArchiveExample&>(), std::declval<const String&>(), std::declval<T&>())
+        decltype(ArchiveValueEx(std::declval<Archive&>(), std::declval<const String&>(), std::declval<T&>())
                  ) >> : std::true_type {};
 // helper variable template
 template< typename T> inline constexpr bool is_ArchiveValueEx_available_v =
@@ -190,7 +232,7 @@ template< class T> class false_on_instantiation : public std::false_type {};
 template <typename T>
 struct Archiver
 {
-    static bool ArchiveValue(ArchiveExample& a, const String& name, T&& val)
+    static bool ArchiveValue(Archive& a, const String& name, T&& val)
     {
 //        static_assert(Archival::Detail::IsBasicType<std::remove_reference_t<T>>::value,"Check True");
 //        static_assert(!Archival::Detail::IsBasicType<std::remove_reference_t<T>>::value,"Check False");
@@ -198,14 +240,9 @@ struct Archiver
         {
             // Call Get or Set
             if (a.IsInput())
-            {
-                URHO3D_LOGINFO("Reading " + name + ": " + String(val));
-            }
+                return a.GetBackend().Get(name,std::forward<T>(val));
             else
-            {
-                URHO3D_LOGINFO("Writing " + name + ": " + String(val));
-            }
-            return true;
+                return a.GetBackend().Set(name,std::forward<T>(val));
         }
         else if constexpr (has_ArchiveValue_method<std::remove_reference_t<T>>::value)
         {
@@ -238,7 +275,7 @@ template<typename T>
 const String DemangledName_v = DemangledName<T>();
 
 template <typename T>
-ArchiveResult2<T> ArchiveExample::Serialize(const String& name, T&& val)
+ArchiveResult<T> Archive::Serialize(const String& name, T&& val)
 {
 //    const auto& tname = DemangledName_v<T>;
 //    URHO3D_LOGDEBUG("Serializing "+ tname);
@@ -247,7 +284,7 @@ ArchiveResult2<T> ArchiveExample::Serialize(const String& name, T&& val)
 }
 
 template <typename T, typename... Ts>
-ArchiveResult2<T,Ts...> ArchiveExample::Serialize(const String& name, T&& val, Ts&&... vals)
+ArchiveResult<T,Ts...> Archive::Serialize(const String& name, T&& val, Ts&&... vals)
 {
 //    const auto& tname = DemangledName_v<T>;
 //    URHO3D_LOGDEBUG("Serializing "+ tname);
@@ -263,9 +300,24 @@ ArchiveResult2<T,Ts...> ArchiveExample::Serialize(const String& name, T&& val, T
 
 }
 
+
+/// Calls resize on the passed object to generate a series of that size. Specialized to supply an int as well.
+template<>
+inline bool Archive::SerializeSeriesSize(const String& name, unsigned& size)
+{
+    if (IsInput())
+    {
+        return GetBackend().GetSeriesSize(name, size);
+    }
+    else
+    {
+        return GetBackend().SetSeriesSize(name, size);
+    }
+}
+
 template<class... T>
 template<class... Args>
-auto ArchiveResult2<T...>::Else(const String& name, Args&&... params)
+auto ArchiveResult<T...>::Else(const String& name, Args&&... params)
 {
     typedef decltype (archive->Serialize(name, std::forward<Args>(params)...)) ret;
     if (!Succeeded())
@@ -275,7 +327,7 @@ auto ArchiveResult2<T...>::Else(const String& name, Args&&... params)
 
 template<class... T>
 template<class... Args>
-auto ArchiveResult2<T...>::Then(const String& name, Args&&... params)
+auto ArchiveResult<T...>::Then(const String& name, Args&&... params)
 {
     typedef decltype (archive->Serialize(name, std::forward<Args>(params)...)) ret;
     if (Succeeded())

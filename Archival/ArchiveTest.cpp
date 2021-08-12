@@ -2,7 +2,7 @@
 
 namespace Urho3D {
 
-bool Example::ArchiveValue(future::ArchiveExample& ar, const Urho3D::String& name)
+bool Example::ArchiveValue(Archival::Archive& ar, const Urho3D::String& name)
 {
     URHO3D_LOGINFO("Successful Method: " + name);
     ar.Serialize("f",a);
@@ -49,10 +49,10 @@ void ExampleGS::setC(const String& value)
 
 }
 
-namespace future {
+namespace Archival {
 
 //template<>
-bool Archiver<Urho3D::ExampleS&>::ArchiveValue(future::ArchiveExample& ar, const String& name, future::Archiver<Urho3D::ExampleS&>::T& ex)
+bool Archiver<Urho3D::ExampleS&>::ArchiveValue(Archival::Archive& ar, const String& name, Archival::Archiver<Urho3D::ExampleS&>::T& ex)
 {
     URHO3D_LOGINFO("Successful Specialization: " + name);
     ar.Serialize("f",ex.a).Else("f2");
@@ -70,7 +70,7 @@ void TestArchive()
 {
     static bool input = false;
     input = !input;
-    future::ArchiveExample archive{input};
+    Archival::Archive archive{input};
 
     // Test in this namespace
     {
@@ -94,14 +94,14 @@ void TestArchive()
 
     // Test the Utils
     {
-        using namespace future;
+        using namespace Archival;
         ExampleGS exgs;
         archive.Serialize("function+GS",exgs);
 
         ExampleEnum exenum{ExampleEnum::AAAAH};
         archive.Serialize("specialization+enum",exenum);
 
-        archive.Serialize("method+enum+DEFAULT",WithDefault2(exenum,ExampleEnum::AAAAH));
+        archive.Serialize("method+enum+DEFAULT",WithDefault(exenum,ExampleEnum::AAAAH));
 
     }
 

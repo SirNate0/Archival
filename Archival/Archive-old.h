@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include <Urho3D/Container/Str.h>
 #include <Urho3D/Core/StringUtils.h>
 #include <Urho3D/Container/Vector.h>
@@ -493,3 +494,4 @@ inline bool Archive::SerializeSeriesSize(const String& name, unsigned& size)
 }
 
 }
+#endif

@@ -8,7 +8,7 @@
 //#include <Urhox/Urhox.h>
 #include <ImGui/imgui.h>
 
-inline namespace Archival {
+namespace Archival {
 namespace Detail {
 
 using namespace Urho3D;

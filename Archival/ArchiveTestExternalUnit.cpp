@@ -3,7 +3,7 @@
 
 namespace OtherNamespace {
 
-bool Example::ArchiveValue(future::ArchiveExample& ar, const String& name)
+bool Example::ArchiveValue(Archival::Archive& ar, const String& name)
 {
     URHO3D_LOGINFO("ONS Successful Method: " + name);
     ar.Serialize("f",a);
@@ -12,7 +12,7 @@ bool Example::ArchiveValue(future::ArchiveExample& ar, const String& name)
     return true;
 }
 
-bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEx& ex)
+bool ArchiveValueEx(Archival::Archive& ar, const String& name, ExampleEx& ex)
 {
     URHO3D_LOGINFO("ONS Successful External Function: " + name);
     ar.Serialize("f",ex.a);
@@ -23,9 +23,9 @@ bool ArchiveValueEx(future::ArchiveExample& ar, const String& name, ExampleEx& e
 
 }
 
-namespace future {
+namespace Archival {
 //template<>
-bool future::Archiver<OtherNamespace::ExampleS&>::ArchiveValue(ArchiveExample& ar, const String& name, future::Archiver<OtherNamespace::ExampleS&>::T& ex)
+bool Archival::Archiver<OtherNamespace::ExampleS&>::ArchiveValue(Archive& ar, const String& name, Archival::Archiver<OtherNamespace::ExampleS&>::T& ex)
 {
     URHO3D_LOGINFO("Successful Specialization: " + name);
     ar.Serialize("f",ex.a);

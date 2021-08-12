@@ -10,7 +10,7 @@
 
 #include "ImPlot/implot.h"
 
-inline namespace Archival {
+namespace Archival {
 
 namespace Detail {
 
