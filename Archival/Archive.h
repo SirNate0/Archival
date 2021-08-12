@@ -189,6 +189,11 @@ public:
     {
         return ArchiveResult<>(*this, GetBackend().WriteConditional(name, value, IsInput()));
     }
+    /// Allows binary to bake conditional choices and text to skip optional entries.
+    [[deprecated]] ArchiveResult<> WriteConditional(bool value)
+    {
+        return ArchiveResult<>(*this, GetBackend().WriteConditional(value, IsInput()));
+    }
 
 private:
     void PushContext(void*context);

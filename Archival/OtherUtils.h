@@ -7,7 +7,7 @@
 
 #include <exception>
 
-#include "Archival/Utils.h"
+#include "Utils.h"
 
 /// Unfinished code exception to be thrown.
 struct Unfinished: public std::exception
